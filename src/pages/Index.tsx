@@ -4,8 +4,12 @@ import { ConceptOutput } from "@/components/ConceptOutput";
 import { ApiKeyInput } from "@/components/ApiKeyInput";
 import { explainConcept } from "@/lib/openai";
 import { useToast } from "@/hooks/use-toast";
+import { useLearningStats } from "@/hooks/useLearningStats";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle, Lightbulb, BarChart3 } from "lucide-react";
 
 interface CodeExample {
   language: string;
@@ -28,7 +32,10 @@ const Index = () => {
   const [currentConcept, setCurrentConcept] = useState<string>("");
   const [currentScenario, setCurrentScenario] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [teachMode, setTeachMode] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
   const { toast } = useToast();
+  const { stats, trackInteraction, clearStats } = useLearningStats();
 
   const handleApiKeySet = (key: string) => {
     setApiKey(key);
@@ -49,6 +56,7 @@ const Index = () => {
     try {
       const result = await explainConcept(concept, scenario, apiKey);
       setResponse(result);
+      trackInteraction('concept_explored', { concept, scenario });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
       setError(errorMessage);
@@ -85,7 +93,50 @@ const Index = () => {
           <ApiKeyInput onApiKeySet={handleApiKeySet} />
         ) : (
           <>
-            <ConceptForm onSubmit={handleConceptSubmit} isLoading={isLoading} />
+            <div className="space-y-6">
+              {/* Learning Controls */}
+              <Card className="max-w-2xl mx-auto">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Lightbulb className="h-5 w-5" />
+                    Learning Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="teach-mode" className="flex items-center gap-2">
+                      <Lightbulb className="h-4 w-4" />
+                      Teach Me As You Go Mode
+                    </Label>
+                    <Switch
+                      id="teach-mode"
+                      checked={teachMode}
+                      onCheckedChange={setTeachMode}
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Enhanced explanations with principles, best practices, and interactive code analysis
+                  </p>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="dashboard-mode" className="flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      Show Learning Dashboard
+                    </Label>
+                    <Switch
+                      id="dashboard-mode"
+                      checked={showDashboard}
+                      onCheckedChange={setShowDashboard}
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Track your learning progress and coding principles applied
+                  </p>
+                </CardContent>
+              </Card>
+
+              <ConceptForm onSubmit={handleConceptSubmit} isLoading={isLoading} />
+            </div>
             
             {error && (
               <Alert variant="destructive" className="max-w-2xl mx-auto">
@@ -100,6 +151,11 @@ const Index = () => {
                 concept={currentConcept} 
                 scenario={currentScenario}
                 apiKey={apiKey}
+                teachMode={teachMode}
+                onTrackInteraction={trackInteraction}
+                showDashboard={showDashboard}
+                learningStats={stats}
+                onClearStats={clearStats}
               />
             )}
           </>

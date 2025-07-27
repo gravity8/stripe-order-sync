@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { CodeTabs } from "./CodeTabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { EnhancedCodeTabs } from "./EnhancedCodeTabs";
+import { LearningDashboard } from "./LearningDashboard";
 import { MermaidDiagram } from "./MermaidDiagram";
-import { Brain, Target, Code, Link, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { Brain, Target, Link, Eye, ChevronDown, ChevronUp, Lightbulb, BarChart3, Code } from "lucide-react";
 import { explainRelatedConcept } from "@/lib/openai";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface CodeExample {
   language: string;
@@ -33,9 +36,24 @@ interface ConceptOutputProps {
   concept: string;
   scenario: string;
   apiKey: string;
+  teachMode: boolean;
+  onTrackInteraction: (type: string, data: any) => void;
+  showDashboard: boolean;
+  learningStats: any;
+  onClearStats: () => void;
 }
 
-export function ConceptOutput({ response, concept, scenario, apiKey }: ConceptOutputProps) {
+export function ConceptOutput({ 
+  response, 
+  concept, 
+  scenario, 
+  apiKey, 
+  teachMode, 
+  onTrackInteraction,
+  showDashboard,
+  learningStats,
+  onClearStats 
+}: ConceptOutputProps) {
   const { explanation, scenarioApplication, codeExamples, relatedConcepts, visualDiagram } = response;
   const [expandedConcept, setExpandedConcept] = useState<string | null>(null);
   const [relatedConceptData, setRelatedConceptData] = useState<Record<string, RelatedConceptResponse>>({});
@@ -129,15 +147,35 @@ export function ConceptOutput({ response, concept, scenario, apiKey }: ConceptOu
         </Card>
       )}
 
+      {/* Learning Dashboard */}
+      {showDashboard && (
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full justify-between mb-4">
+              <span className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Learning Dashboard
+              </span>
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <LearningDashboard stats={learningStats} onClearStats={onClearStats} />
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
       {/* Code Examples */}
       {codeExamples.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Code className="h-5 w-5" />
-            <h3 className="text-lg font-semibold">Code Examples</h3>
-          </div>
-          <CodeTabs examples={codeExamples} />
-        </div>
+        <EnhancedCodeTabs
+          examples={codeExamples}
+          teachMode={teachMode}
+          apiKey={apiKey}
+          originalResponse={response}
+          concept={concept}
+          scenario={scenario}
+          onTrackInteraction={onTrackInteraction}
+        />
       )}
 
       {/* Related Concepts */}
